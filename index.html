@@ -1,3 +1,70 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1020"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Niagara Lite"><link rel="manifest" href="./manifest.webmanifest"><link rel="apple-touch-icon" href="./icon-180.png"><title>Niagara Lite | Effect Lab</title><style>body{margin:0;background:#0b1020;color:#e9f0ff;font:15px system-ui}header{padding:14px 20px;background:#151e35;display:flex;justify-content:space-between;align-items:center}main{display:grid;grid-template-columns:300px 1fr;min-height:calc(100vh - 60px)}aside{padding:20px;background:#11192d}label{display:block;margin:17px 0 5px}input,select,button{width:100%;box-sizing:border-box}input[type=range]{accent-color:#6ce6ff}button{background:#3176bd;color:white;border:0;border-radius:7px;padding:12px;margin-top:12px;cursor:pointer}canvas{display:block;width:100%;height:100%}.stage{position:relative;min-height:520px}.note{color:#a7b7d0;font-size:12px;line-height:1.5}.tag{color:#75e4ff;font-weight:600}@media(max-width:720px){main{grid-template-columns:1fr}.stage{min-height:420px}}@media(max-width:720px){header{padding:calc(12px + env(safe-area-inset-top)) 14px 12px;gap:8px}header>span{display:none}main{display:flex;flex-direction:column}.stage{order:0;min-height:0;height:44dvh;max-height:440px}.stage canvas{touch-action:none}aside{order:1;padding:14px 18px calc(20px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr;gap:8px 14px}aside label{margin:8px 0 0;grid-column:span 2}aside select,aside input{grid-column:span 2;min-height:38px}aside button{grid-column:span 2;min-height:48px;margin-top:3px}aside .note{grid-column:span 2}input[type=range]{height:38px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}</style></head><body><header><strong>⚡ Niagara Lite <span class="tag">Effect Lab 001</span></strong><span>Standalone VFX prototype</span></header><main><aside><label>Effect preset</label><select id="preset"><option value="boost">Boost Burst</option><option value="spark">Rail Sparks</option><option value="portal">Portal Pulse</option></select><label>Particle count: <output id="countVal">90</output></label><input id="count" type="range" min="10" max="300" value="90"><label>Speed: <output id="speedVal">4</output></label><input id="speed" type="range" min="1" max="12" step=".5" value="4"><label>Lifetime: <output id="lifeVal">1.4</output> sec</label><input id="life" type="range" min=".3" max="4" step=".1" value="1.4"><label>Color</label><input id="color" type="color" value="#41dfff"><button id="play">▶ Replay effect</button><button id="export">↓ Export effect JSON</button><button id="flipbook">↓ Export 4×4 flipbook PNG</button><p class="note">One sprite texture, one particle field, and a lightweight expanding ring. Exported JSON is a portable specification, not a native Niagara asset. The PNG is a pre-rendered approximation.</p></aside><div class="stage"><canvas id="canvas"></canvas></div></main><script>
-const canvas=document.querySelector('#canvas'),ctx=canvas.getContext('2d');let W=0,H=0,start=performance.now(),particles=[];const $=id=>document.getElementById(id);let cfg={};function settings(){return {preset:$('preset').value,count:+$('count').value,speed:+$('speed').value,lifetime:+$('life').value,color:$('color').value,texture:'radial_glow',ring:true,rendering:'additive',target:'UEFN Niagara template'}}function random(i){let x=Math.sin(i*127.1+78.233)*43758.5453;return x-Math.floor(x)}function reset(){cfg=settings();start=performance.now();particles=Array.from({length:cfg.count},(_,i)=>{let a=random(i+1)*Math.PI*2,z=random(i+550),v=.4+random(i+950)*.8;return {a,v,delay:random(i+1500)*.18,size:2+random(i+2200)*5,z}})}function resize(){let r=canvas.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);W=r.width;H=r.height;canvas.width=W*d;canvas.height=H*d;ctx.setTransform(d,0,0,d,0,0)}function rgba(hex,a){let n=parseInt(hex.slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`}function draw(t,w=W,h=H,c=ctx){c.fillStyle='#080d19';c.fillRect(0,0,w,h);let cx=w/2,cy=h/2,scale=Math.min(w,h)/380;let age=t%Math.max(cfg.lifetime+.35,.5);c.save();c.globalCompositeOperation='lighter';let progress=Math.min(age/cfg.lifetime,1);if(cfg.ring){c.beginPath();c.arc(cx,cy,(15+progress*150*cfg.speed/4)*scale,0,Math.PI*2);c.lineWidth=(9*(1-progress)+1)*scale;c.strokeStyle=rgba(cfg.color,.55*(1-progress));c.stroke()}let grad=c.createRadialGradient(cx,cy,0,cx,cy,(40+progress*55)*scale);grad.addColorStop(0,rgba(cfg.color,.45*(1-progress)));grad.addColorStop(1,rgba(cfg.color,0));c.fillStyle=grad;c.beginPath();c.arc(cx,cy,(40+progress*55)*scale,0,Math.PI*2);c.fill();for(let p of particles){let local=(age-p.delay)/cfg.lifetime;if(local<0||local>1)continue;let r=local*cfg.speed*50*p.v*scale;let x=cx+Math.cos(p.a)*r,y=cy+Math.sin(p.a)*r*(cfg.preset==='spark'?.35:1)+(cfg.preset==='spark'?local*local*110*scale:0);if(cfg.preset==='portal'){x=cx+Math.cos(p.a+local*5)*r*.65;y=cy+Math.sin(p.a+local*5)*r*.65}let rad=p.size*scale*(1-local*.6),g=c.createRadialGradient(x,y,0,x,y,rad*3);g.addColorStop(0,rgba('#ffffff',.9*(1-local)));g.addColorStop(.25,rgba(cfg.color,.7*(1-local)));g.addColorStop(1,rgba(cfg.color,0));c.fillStyle=g;c.beginPath();c.arc(x,y,rad*3,0,Math.PI*2);c.fill()}c.restore()}function frame(now){if(!W)resize();draw((now-start)/1000);requestAnimationFrame(frame)}for(let id of ['count','speed','life'])$(id).addEventListener('input',()=>{$(id+'Val').textContent=$(id).value;reset()});for(let id of ['preset','color'])$(id).addEventListener('input',reset);$('play').onclick=reset;function save(blob,name){let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}$('export').onclick=()=>save(new Blob([JSON.stringify({schema:'niagara-lite/0.1',...settings()},null,2)],{type:'application/json'}),'niagara_lite_effect.json');$('flipbook').onclick=()=>{let sheet=document.createElement('canvas');sheet.width=1024;sheet.height=1024;let sc=sheet.getContext('2d');for(let i=0;i<16;i++){let tile=document.createElement('canvas');tile.width=256;tile.height=256;draw(i/15*cfg.lifetime,256,256,tile.getContext('2d'));sc.drawImage(tile,(i%4)*256,Math.floor(i/4)*256)}sheet.toBlob(b=>save(b,'niagara_lite_flipbook.png'))};window.addEventListener('resize',resize);resize();reset();requestAnimationFrame(frame);
-if("serviceWorker" in navigator && (location.protocol==="https:" || location.hostname==="localhost")){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(console.warn))}</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Niagara Lite">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<title>Niagara Lite | Effect Lab</title>
+<link rel="stylesheet" href="./css/app.css">
+</head>
+<body>
+<header>
+  <span class="brand">⚡ Niagara Lite<small>Effect Lab 002</small></span>
+  <select id="presetSel" title="System presets"></select>
+  <button id="restartBtn" class="ghost">⟲ Restart</button>
+  <span class="grow"></span>
+  <select id="libSel" title="Saved systems (this device)"></select>
+  <button id="saveBtn" class="ghost">Save</button>
+  <button id="importBtn" class="ghost">Import</button>
+  <select id="exportSel" title="Export">
+    <option value="">Export ▾</option>
+    <option value="json">Effect JSON (niagara-lite/0.2)</option>
+    <option value="sheet">Niagara build sheet (.txt)</option>
+    <option value="flip">Flipbook PNG…</option>
+    <option value="rec">Record 5 s video</option>
+  </select>
+  <input id="fileIn" type="file" accept=".json,application/json" hidden>
+  <input id="texIn" type="file" accept="image/*" hidden>
+</header>
+<main>
+  <aside id="panel"></aside>
+  <section id="view">
+    <canvas id="gl"></canvas>
+    <div class="hud" id="hud"></div>
+    <div class="bar">
+      <button id="pauseBtn">⏸</button>
+      <button id="stepBtn" title="Step one frame">⏭</button>
+      <select id="speedSel" title="Preview speed"><option value="0.1">0.1×</option><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select>
+      <button id="camBtn" title="Reset camera">🎥</button>
+      <span class="hint">drag: orbit · right-drag / two fingers: pan · wheel / pinch: zoom · double-click: reset</span>
+    </div>
+  </section>
+</main>
+
+<dialog id="flipDlg">
+  <h3>Flipbook export</h3>
+  <div class="row"><label>Columns × Rows</label><div class="ctl"><input id="fbCols" type="number" min="1" max="16" value="4"><span>×</span><input id="fbRows" type="number" min="1" max="16" value="4"></div></div>
+  <div class="row"><label>Frame size (px)</label><div class="ctl"><select id="fbSize"><option>64</option><option>128</option><option selected>256</option><option>512</option></select></div></div>
+  <div class="row"><label>Duration (s)</label><div class="ctl"><input id="fbDur" type="number" step="0.05" value="1"><button id="fbDurAuto" class="ghost sm">= loop</button></div></div>
+  <div class="row"><label>Start offset (s)</label><div class="ctl"><input id="fbStart" type="number" step="0.05" value="0"></div></div>
+  <div class="row"><label>Background</label><div class="ctl"><select id="fbBg"><option value="black">Black (for additive)</option><option value="alpha">Alpha from luminance</option><option value="scene">Scene background</option></select></div></div>
+  <div class="row"><label>Include ground</label><div class="ctl"><input id="fbFloor" type="checkbox"></div></div>
+  <p class="desc" style="padding:0">Simulated deterministically at 60 Hz from the current camera view. In UEFN, import the PNG as a texture and use a SubUV / flipbook material with the same columns × rows.</p>
+  <img id="fbPrev" alt="" hidden>
+  <div class="dlg-btns"><button id="fbGo">Render</button><button id="fbSave" disabled>Download PNG</button><button id="fbClose" class="ghost">Close</button></div>
+</dialog>
+
+<script src="./js/core.js"></script>
+<script src="./js/presets.js"></script>
+<script src="./js/sim.js"></script>
+<script src="./js/textures.js"></script>
+<script src="./js/render.js"></script>
+<script src="./js/app.js"></script>
+</body>
+</html>
