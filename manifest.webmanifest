@@ -1,6 +1,6 @@
 {
-  "name": "Niagara Lite Effect Lab",
-  "short_name": "Niagara Lite",
+  "name": "NytLite Effect Lab",
+  "short_name": "NytLite",
   "description": "Portable VFX playground and flipbook exporter",
   "start_url": "./index.html",
   "scope": "./",

@@ -1,4 +1,4 @@
-/* Niagara Lite — emitter templates (modelled on Niagara's built-in templates) and system presets. */
+/* NytLite — emitter templates (modelled on Niagara's built-in templates) and system presets. */
 'use strict';
 
 const m = mkMod;
@@ -334,6 +334,57 @@ const PRESETS = {
       render: [m('sprite', { tex: 'softDot', blend: 'modulate', order: 5 })]
     })
   ]),
+
+  'City Eraser (black hole)': () => {
+    const HOLE = { strength: 2600, radius: 950, falloff: 1.4, kill: 150, follow: true };
+    return SYS('NS_CityEraser', { motion: 'sweep', motionR: 1700, motionSpeed: TAU / 9, motionZ: 160, bg: 'night', view: { tz: 100, dist: 3600, pitch: .55 } }, [
+      Em('City', { dur: 9, max: 200 }, {
+        emit: [m('spawnBurst', { count: [126, 126] })],
+        spawn: [m('init', { life: [8.95, 8.95], meshScale: [.95, .95, 3], meshRand: [.8, 1.8] }),
+          m('randColor', { grad: gr(['#5d6577', 1, 0], ['#7a8396', 1, .33], ['#4b5266', 1, .66], ['#8c8f99', 1, 1]) }),
+          m('shape', { shape: 'grid', gridCount: [14, 9, 1], gridSize: [2700, 2400, 0], jitter: 25, offset: [0, 0, 150], world: true }), m('meshOrient', { mode: 'fixed' })],
+        update: [m('attract', { ...HOLE, strength: 7000, radius: 750, falloff: 2, shrink: .45, tumble: 900 }), m('vortex', { amount: 500, follow: true, radius: 700 }), m('scaleMesh', { curve: cv([0, 0], [.04, 1], [1, 1]) }), m('drag', { drag: 1.2 }), m('locEvent', { rate: 5, minSpeed: 120 }), m('deathEvent')],
+        render: [m('mesh', { mesh: 'cube', shading: 'lit' })]
+      }),
+      Em('Rubble', { max: 3000 }, {
+        spawn: [m('init', { life: [1.5, 2.5], meshScale: [.12, .08, .05], meshRand: [.5, 1.5], color: C1('#6b6f7a') }), m('addVel', { mode: 'point', speed: [80, 260] }), m('meshOrient', { rate: [-900, 900] })],
+        update: [m('attract', { ...HOLE, shrink: .3 }), m('vortex', { amount: 1800, follow: true, radius: 900 }), m('drag', { drag: .6 }), m('deathEvent')],
+        render: [m('mesh', { mesh: 'shard', shading: 'lit' })],
+        events: [ev('City', 'location', 2, { max: 300, inherit: .5 })]
+      }),
+      Em('Erasure Sparks', { max: 4000 }, {
+        spawn: [m('init', { life: [.35, .7], size: [4, 9], color: C1('#d6b3ff', 4) }), m('addVel', { mode: 'point', speed: [150, 400] })],
+        update: [m('attract', { ...HOLE, strength: 5000, kill: 60 }), m('vortex', { amount: 2500, follow: true }), m('color', { grad: gr(['#ffffff', 1, 0], ['#ff9a4d', 1, .5], ['#8a3dff', 0, 1]) })],
+        render: [m('sprite', { tex: 'spark', align: 'velocity', stretch: .012 })],
+        events: [ev('City', 'death', 24, { max: 20 }), ev('Rubble', 'death', 3, { max: 200 })]
+      }),
+      Em('Erased Ground', { max: 400 }, {
+        emit: [m('spawnPerUnit', { spacing: 45 })],
+        spawn: [m('init', { life: [8.5, 8.5], size: [520, 640], rot: [0, 360], color: C1('#000000') }), m('shape', { shape: 'sphere', radius: 60 })],
+        update: [m('scaleColor', { alpha: cv([0, 0], [.03, .95], [.85, .95], [1, 0]) })],
+        render: [m('decal', { tex: 'smoke', blend: 'translucent' })]
+      }),
+      Em('Accretion Disk', { local: true, max: 3000 }, {
+        emit: [m('spawnRate', { rate: 500 })],
+        spawn: [m('init', { life: [.8, 1.6], size: [8, 16], color: C1('#ffb35c', 3) }), m('shape', { shape: 'ring', radius: 360, coverage: .55, rotation: [12, 0, 0] })],
+        update: [m('rotateAround', { rate: 420, axis: [0, -.21, .98] }), m('attract', { strength: 500, radius: 500, kill: 140 }), m('color', { grad: gr(['#ffffff', 0, 0], ['#ffe2b0', 1, .15], ['#ff7a2a', 1, .6], ['#7a2cff', 0, 1]) })],
+        render: [m('sprite', { tex: 'glow' })]
+      }),
+      Em('Event Horizon', { local: true, dur: 1 }, {
+        emit: [m('spawnBurst', { count: [1, 1] })], spawn: [m('init', { life: [1, 1], meshScale: [2.7, 2.7, 2.7], color: C1('#000000'), size: [470, 470] })],
+        render: [m('mesh', { mesh: 'sphere', shading: 'unlit', order: 3 }), m('sprite', { tex: 'softDot', blend: 'modulate', order: 4 })]
+      }),
+      Em('Photon Ring', { local: true, dur: .6 }, {
+        emit: [m('spawnBurst', { count: [1, 1] })], spawn: [m('init', { life: [.6, .6], size: [330, 330], color: C1('#c9a8ff', 1.6) })],
+        update: [m('scaleSprite', { curve: cv([0, .97], [.5, 1.04], [1, .97]) })],
+        render: [m('sprite', { tex: 'ring', order: 5 })]
+      }),
+      Em('Hole Light', { local: true, dur: .25 }, {
+        emit: [m('spawnBurst', { count: [1, 1] })], spawn: [m('init', { life: [.25, .25], size: [900, 900], color: C1('#ff8a4a', 2.2) })],
+        render: [m('light', { radiusScale: 1.4, glow: false })]
+      })
+    ]);
+  },
 
   'Confetti Cannons': () => {
     const a = EMITTER_TEMPLATES['Confetti Burst'](); a.name = 'Cannon L'; a.spawn.find(x => x.t === 'addVel').p.axis = [.5, 0, 1]; a.spawn.push(m('shape', { shape: 'point', offset: [-300, 0, 0] }));

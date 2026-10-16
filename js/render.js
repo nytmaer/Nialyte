@@ -1,4 +1,4 @@
-/* Niagara Lite — WebGL2 renderer: sprites, ribbons, meshes, lights, decals, ground. */
+/* NytLite — WebGL2 renderer: sprites, ribbons, meshes, lights, decals, ground. */
 'use strict';
 
 const BG = { night: [.031, .051, .098], black: [0, 0, 0], grey: [.16, .17, .19], sky: [.42, .55, .7] };

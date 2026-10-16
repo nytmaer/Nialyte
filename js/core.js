@@ -1,4 +1,4 @@
-/* Niagara Lite — core: utilities, parameter schema, module registry.
+/* NytLite — core: utilities, parameter schema, module registry.
    Units mirror Unreal: centimetres, Z-up, seconds, degrees. */
 'use strict';
 
@@ -183,7 +183,8 @@ const MODS = {
       V3('gridCount', 'Grid Count (xyz)', [8, 8, 1], { show: sh('grid') }),
       V3('gridSize', 'Grid Size', [400, 400, 0], { show: sh('grid') }),
       F('jitter', 'Jitter (cm)', 0, 0, 200, .5, { show: sh('grid', 'line', 'point') }),
-      V3('rotation', 'Shape Rotation (deg)', [0, 0, 0]), V3('offset', 'Offset', [0, 0, 0])
+      V3('rotation', 'Shape Rotation (deg)', [0, 0, 0]), V3('offset', 'Offset', [0, 0, 0]),
+      Bo('world', 'Anchor at World Origin', false, { help: 'Ignore the moving component and spawn relative to world 0,0,0' })
     ],
     spawn(p, P, c) {
       const R = c.rand; let x = 0, y = 0, z = 0, n = [0, 0, 1];
@@ -208,7 +209,8 @@ const MODS = {
       }
       if (P.jitter && (P.shape === 'grid' || P.shape === 'line' || P.shape === 'point')) { const d = randDir(R), j = P.jitter * R(); x += d[0] * j; y += d[1] * j; z += d[2] * j; }
       [x, y, z] = rotEuler(x, y, z, P.rotation); n = rotEuler(n[0], n[1], n[2], P.rotation);
-      p.x = x + P.offset[0]; p.y = y + P.offset[1]; p.z = z + P.offset[2]; p.nx = n[0]; p.ny = n[1]; p.nz = n[2];
+      p.x = x + P.offset[0]; p.y = y + P.offset[1]; p.z = z + P.offset[2];
+      if (P.world) { p.x -= c.sox; p.y -= c.soy; p.z -= c.soz; } p.nx = n[0]; p.ny = n[1]; p.nz = n[2];
     }
   },
   addVel: {
@@ -288,9 +290,10 @@ const MODS = {
   },
   vortex: {
     stage: 'update', cat: 'Forces', name: 'Vortex Force', desc: 'Spins particles around an axis, optionally pulling them in.',
-    params: [V3('axis', 'Vortex Axis', [0, 0, 1]), F('amount', 'Vortex Force Amount', 500, -10000, 10000, 10), F('pull', 'Origin Pull', 0, -10000, 10000, 10), V3('center', 'Vortex Origin Offset', [0, 0, 0])],
-    update(p, P) {
-      const [ax, ay, az] = norm3(P.axis); let rx = p.x - P.center[0], ry = p.y - P.center[1], rz = p.z - P.center[2];
+    params: [V3('axis', 'Vortex Axis', [0, 0, 1]), F('amount', 'Vortex Force Amount', 500, -10000, 10000, 10), F('pull', 'Origin Pull', 0, -10000, 10000, 10), V3('center', 'Vortex Origin Offset', [0, 0, 0]), Bo('follow', 'Follow Component', false, { help: 'Center moves with the system component (for moving attractors)' }), F('radius', 'Influence Radius (0 = ∞)', 0, 0, 10000, 10)],
+    update(p, P, c) {
+      const [ax, ay, az] = norm3(P.axis); let rx = p.x - P.center[0] - (P.follow ? c.px : 0), ry = p.y - P.center[1] - (P.follow ? c.py : 0), rz = p.z - P.center[2] - (P.follow ? c.pz : 0);
+      if (P.radius > 0 && rx * rx + ry * ry + rz * rz > P.radius * P.radius) return;
       const d = rx * ax + ry * ay + rz * az; rx -= ax * d; ry -= ay * d; rz -= az * d;
       const l = Math.hypot(rx, ry, rz); if (l < 1e-3) return; rx /= l; ry /= l; rz /= l;
       const tx = ay * rz - az * ry, ty = az * rx - ax * rz, tz = ax * ry - ay * rx;
@@ -299,11 +302,15 @@ const MODS = {
   },
   attract: {
     stage: 'update', cat: 'Forces', name: 'Point Attraction Force', desc: 'Pulls toward a point; negative strength pushes. Kill Radius removes arrivals.',
-    params: [F('strength', 'Attraction Strength', 1000, -20000, 20000, 10), F('radius', 'Attraction Radius', 500, 1, 5000, 1), F('falloff', 'Falloff Exponent', 1, 0, 8, .1), F('kill', 'Kill Radius', 0, 0, 500, 1), V3('center', 'Attractor Position', [0, 0, 0])],
-    update(p, P) {
-      const dx = P.center[0] - p.x, dy = P.center[1] - p.y, dz = P.center[2] - p.z, d = Math.hypot(dx, dy, dz);
+    params: [F('strength', 'Attraction Strength', 1000, -20000, 20000, 10), F('radius', 'Attraction Radius', 500, 1, 5000, 1), F('falloff', 'Falloff Exponent', 1, 0, 8, .1), F('kill', 'Kill Radius', 0, 0, 500, 1), V3('center', 'Attractor Position', [0, 0, 0]), Bo('follow', 'Follow Component', false, { help: 'Center moves with the system component (for moving attractors)' }),
+      F('shrink', 'Shrink Near Center (radius fraction)', 0, 0, 1, .01, { help: 'Particles scale toward 0 as they approach the kill radius' }), F('tumble', 'Tumble When Captured (deg/s²)', 0, 0, 5000, 10)],
+    update(p, P, c) {
+      const cx = P.center[0] + (P.follow ? c.px : 0), cy = P.center[1] + (P.follow ? c.py : 0), cz = P.center[2] + (P.follow ? c.pz : 0);
+      const dx = cx - p.x, dy = cy - p.y, dz = cz - p.z, d = Math.hypot(dx, dy, dz);
       if (d < P.kill) { p.dead = true; return; } if (d > P.radius || d < 1e-3) return;
       const f = P.strength * Math.pow(1 - d / P.radius, P.falloff) / d; p.fx += dx * f; p.fy += dy * f; p.fz += dz * f;
+      if (P.shrink > 0) { const zone = P.radius * P.shrink, k = clamp((d - P.kill) / Math.max(1, zone - P.kill), 0, 1); if (k < 1) { const s = Math.sqrt(k); p.sx *= s; p.sy *= s; p.mx *= s; p.my *= s; p.mz *= s; } }
+      if (P.tumble > 0) { if (!p.tumbling) { p.tumbling = true; const a = randDir(Math.random); p.axx = a[0]; p.axy = a[1]; p.axz = a[2]; } p.mrate += P.tumble * D2R * c.dt * (1 - d / P.radius); }
     }
   },
   limitVel: { stage: 'update', cat: 'Forces', name: 'Limit Velocity', phase: 'vel', desc: 'Clamps speed after forces are solved.', params: [F('max', 'Max Speed', 500, 0, 10000, 1)], update(p, P) { const s = Math.hypot(p.vx, p.vy, p.vz); if (s > P.max) { const k = P.max / s; p.vx *= k; p.vy *= k; p.vz *= k; } } },
@@ -372,14 +379,14 @@ const MODS = {
   },
   killVolume: {
     stage: 'update', cat: 'Kill', name: 'Kill Particles In Volume', phase: 'post', desc: 'Kills particles inside (or outside, if inverted) a sphere or box.',
-    params: [En('shape', 'Volume', 'sphere', [['sphere', 'Sphere'], ['box', 'Box']]), V3('center', 'Center', [0, 0, 0]), F('radius', 'Sphere Radius', 50, 0, 5000, 1, { show: p => p.shape === 'sphere' }), V3('box', 'Box Size', [200, 200, 200], { show: p => p.shape === 'box' }), Bo('invert', 'Invert (kill outside)', false)],
-    update(p, P) {
-      const dx = p.x - P.center[0], dy = p.y - P.center[1], dz = p.z - P.center[2];
+    params: [En('shape', 'Volume', 'sphere', [['sphere', 'Sphere'], ['box', 'Box']]), V3('center', 'Center', [0, 0, 0]), F('radius', 'Sphere Radius', 50, 0, 5000, 1, { show: p => p.shape === 'sphere' }), V3('box', 'Box Size', [200, 200, 200], { show: p => p.shape === 'box' }), Bo('invert', 'Invert (kill outside)', false), Bo('follow', 'Follow Component', false, { help: 'Center moves with the system component (for moving attractors)' })],
+    update(p, P, c) {
+      const dx = p.x - P.center[0] - (P.follow ? c.px : 0), dy = p.y - P.center[1] - (P.follow ? c.py : 0), dz = p.z - P.center[2] - (P.follow ? c.pz : 0);
       const inside = P.shape === 'sphere' ? dx * dx + dy * dy + dz * dz < P.radius * P.radius : Math.abs(dx) < P.box[0] / 2 && Math.abs(dy) < P.box[1] / 2 && Math.abs(dz) < P.box[2] / 2;
       if (inside !== P.invert) p.dead = true;
     }
   },
-  locEvent: { stage: 'update', cat: 'Events', name: 'Generate Location Event', desc: 'Emits location events other emitters can spawn from (e.g. trails).', params: [F('rate', 'Events per Second (per particle)', 30, 0, 240, 1)], update(p, P, c) { p.locAcc += P.rate * c.dt; while (p.locAcc >= 1) { p.locAcc -= 1; c.emitEvent('location', p); } } },
+  locEvent: { stage: 'update', cat: 'Events', name: 'Generate Location Event', desc: 'Emits location events other emitters can spawn from (e.g. trails).', params: [F('rate', 'Events per Second (per particle)', 30, 0, 240, 1), F('minSpeed', 'Only When Faster Than (cm/s)', 0, 0, 5000, 1)], update(p, P, c) { if (P.minSpeed > 0 && p.vx * p.vx + p.vy * p.vy + p.vz * p.vz < P.minSpeed * P.minSpeed) return; p.locAcc += P.rate * c.dt; while (p.locAcc >= 1) { p.locAcc -= 1; c.emitEvent('location', p); } } },
   deathEvent: { stage: 'update', cat: 'Events', name: 'Generate Death Event', desc: 'Emits an event when a particle dies (e.g. secondary explosions).', params: [], update() { } },
 
   /* ===== Renderers ===== */
@@ -469,7 +476,7 @@ const SYSTEM_PARAMS = [
   F('warmup', 'Warmup Time (s)', 0, 0, 20, .1), F('warmupDt', 'Warmup Tick Delta', 1 / 30, .005, .2, .005),
   Bo('fixedTick', 'Fixed Tick Delta', false), F('tickRate', 'Fixed Tick Rate (Hz)', 60, 10, 240, 1, { show: p => p.fixedTick }),
   F('timeScale', 'Preview Time Dilation', 1, 0, 3, .05), F('spawnScale', 'Scalability: Spawn Count Scale', 1, 0, 3, .05),
-  En('motion', 'Component Motion (preview)', 'none', [['none', 'Static'], ['orbit', 'Orbit'], ['line', 'Back & Forth'], ['figure8', 'Figure Eight'], ['bounce', 'Bounce'], ['spiral', 'Rising Spiral']]),
+  En('motion', 'Component Motion (preview)', 'none', [['none', 'Static'], ['orbit', 'Orbit'], ['line', 'Back & Forth'], ['figure8', 'Figure Eight'], ['bounce', 'Bounce'], ['spiral', 'Rising Spiral'], ['sweep', 'Sweep (straight pass, repeats)']]),
   F('motionR', 'Motion Radius (cm)', 200, 0, 2000, 1, { show: p => p.motion !== 'none' }), F('motionSpeed', 'Motion Speed (rad/s)', 2, 0, 20, .05, { show: p => p.motion !== 'none' }),
   F('motionZ', 'Component Height (cm)', 0, -500, 2000, 1),
   En('bg', 'Background', 'night', [['night', 'Night Blue'], ['black', 'Black'], ['grey', 'Studio Grey'], ['sky', 'Day Sky']]),

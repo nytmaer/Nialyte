@@ -1,4 +1,4 @@
-/* Niagara Lite — CPU simulation. Reads the system model live, so edits apply without a restart. */
+/* NytLite — CPU simulation. Reads the system model live, so edits apply without a restart. */
 'use strict';
 
 const PHASES = { force: [], vel: [], post: [] };
@@ -10,6 +10,7 @@ function compPos(S, t) {
     case 'line': return [R * Math.sin(w * t), 0, h];
     case 'figure8': return [R * Math.sin(w * t), R * .5 * Math.sin(2 * w * t), h];
     case 'bounce': return [0, 0, h + R * Math.abs(Math.sin(w * t))];
+    case 'sweep': { const f = (t * w / TAU) % 1; return [-R + 2 * R * f, 0, h]; }
     case 'spiral': { const k = (t * w / TAU) % 3; return [R * .6 * Math.cos(w * t), R * .6 * Math.sin(w * t), h + k * R * .5]; }
     default: return [0, 0, h];
   }
@@ -40,7 +41,7 @@ class Sim {
     p.bsx = p.bsy = p.sx = p.sy = 10; p.rot = 0; p.srate = 0; p.frame = 0; p.emis = 1;
     p.br = p.bg = p.bb = p.ba = 1; p.r = p.g = p.b = p.a = 1;
     p.bmx = p.bmy = p.bmz = p.mx = p.my = p.mz = 1; p.axx = 0; p.axy = 0; p.axz = 1; p.mang = 0; p.mrate = 0;
-    p.nx = 0; p.ny = 0; p.nz = 1; p.rid = E.batch;
+    p.nx = 0; p.ny = 0; p.nz = 1; p.rid = E.batch; p.tumbling = false;
     return p;
   }
 
@@ -48,6 +49,7 @@ class Sim {
     const S = this.sys, dt = Math.min(dtIn, .1);
     this.t += dt;
     this.prevComp = this.comp; this.comp = compPos(S, this.t);
+    if (Math.hypot(this.comp[0] - this.prevComp[0], this.comp[1] - this.prevComp[1], this.comp[2] - this.prevComp[2]) > 20000 * dt) this.prevComp = this.comp; // teleport (motion wrap): no smear
     this.cvel = [(this.comp[0] - this.prevComp[0]) / dt, (this.comp[1] - this.prevComp[1]) / dt, (this.comp[2] - this.prevComp[2]) / dt];
     const solo = S.emitters.some(e => e.solo && e.on), next = new Map();
     let total = 0;
@@ -67,7 +69,7 @@ class Sim {
     const emitEvent = (type, p) => { if (out.length < 4000) out.push({ type, x: p.x + ox, y: p.y + oy, z: p.z + oz, vx: p.vx, vy: p.vy, vz: p.vz }); };
     let frames = 1;
     for (const r of em.render) if (r.on && r.t === 'sprite') frames = Math.max(frames, Math.round(r.p.cols) * Math.round(r.p.rows));
-    const ctx = { E, em, rand: E.rand, dt, t: this.t, i: 0, n: 1, cvx: this.cvel[0], cvy: this.cvel[1], cvz: this.cvel[2], ox, oy, oz, frames, tmp: [0, 0, 0], emitEvent };
+    const ctx = { E, em, rand: E.rand, dt, t: this.t, i: 0, n: 1, cvx: this.cvel[0], cvy: this.cvel[1], cvz: this.cvel[2], ox, oy, oz, frames, tmp: [0, 0, 0], emitEvent, px: local ? 0 : comp[0], py: local ? 0 : comp[1], pz: local ? 0 : comp[2] };
 
     /* ---- emitter lifecycle + spawn count ---- */
     let n = 0;
@@ -131,6 +133,7 @@ class Sim {
       else if (interp) { const k = (i + 1) / n; ox = lerp(prev[0], comp[0], k); oy = lerp(prev[1], comp[1], k); oz = lerp(prev[2], comp[2], k); }
       else { ox = comp[0]; oy = comp[1]; oz = comp[2]; }
       if (local) { ox -= comp[0]; oy -= comp[1]; oz -= comp[2]; }
+      ctx.sox = ox; ctx.soy = oy; ctx.soz = oz;
       if (!ev || h.useSpawn) for (const mo of em.spawn) if (mo.on) MODS[mo.t].spawn(p, mo.p, ctx);
       p.x += ox; p.y += oy; p.z += oz;
       if (ev && h.inherit) { p.vx += ev.vx * h.inherit; p.vy += ev.vy * h.inherit; p.vz += ev.vz * h.inherit; }

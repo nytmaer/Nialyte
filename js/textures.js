@@ -1,4 +1,4 @@
-/* Niagara Lite — procedural material textures (white RGB + alpha, tinted by particle color). */
+/* NytLite — procedural material textures (white RGB + alpha, tinted by particle color). */
 'use strict';
 
 const TEXTURES = {

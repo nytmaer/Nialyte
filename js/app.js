@@ -1,4 +1,4 @@
-/* Niagara Lite — editor UI, camera, main loop, import/export. */
+/* NytLite — editor UI, camera, main loop, import/export. */
 'use strict';
 
 const $ = s => document.querySelector(s);
@@ -370,7 +370,7 @@ const fileBase = () => (sys.name || 'NS_Effect').replace(/[^\w-]+/g, '_');
 function exportJSON() {
   const out = clone(sys);
   for (const em of out.emitters) for (const k of ['emit', 'spawn', 'update', 'render']) em[k].forEach(mo => { mo.niagara = MODS[mo.t].name; });
-  download(new Blob([JSON.stringify({ schema: 'niagara-lite/0.2', app: 'Niagara Lite Effect Lab 002', exported: new Date().toISOString(), units: 'cm, Z-up, seconds, degrees; colors sRGB hex × intensity', system: out }, null, 2)], { type: 'application/json' }), fileBase() + '.niagaralite.json');
+  download(new Blob([JSON.stringify({ schema: 'nytlite/0.2', app: 'NytLite Effect Lab 002', exported: new Date().toISOString(), units: 'cm, Z-up, seconds, degrees; colors sRGB hex × intensity', system: out }, null, 2)], { type: 'application/json' }), fileBase() + '.nytlite.json');
 }
 
 function fmtVal(s, v) {
@@ -390,7 +390,7 @@ function fmtVal(s, v) {
 function buildSheet() {
   const L = [], line = (d, t) => L.push('  '.repeat(d) + t);
   const params = (d, ps, obj) => { for (const s of ps) if (!s.show || s.show(obj)) line(d, `${s.l}: ${fmtVal(s, obj[s.k])}`); };
-  L.push(`NIAGARA LITE BUILD SHEET — ${sys.name}`, `Generated ${new Date().toLocaleString()} · units: cm, Z-up, seconds, degrees`, '');
+  L.push(`NYTLITE BUILD SHEET (for Unreal Niagara) — ${sys.name}`, `Generated ${new Date().toLocaleString()} · units: cm, Z-up, seconds, degrees`, '');
   L.push('SYSTEM'); params(1, SYSTEM_PARAMS.filter(s => !['bg', 'floor', 'autoOrbit', 'timeScale'].includes(s.k)), sys); L.push('');
   sys.emitters.forEach((em, i) => {
     L.push(`EMITTER ${i + 1}: ${em.name}${em.on ? '' : '  (disabled)'}`);

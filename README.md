@@ -1,11 +1,11 @@
-# Niagara Lite Effect Lab 002 | Installable PWA
+# NytLite Effect Lab 002 | Installable PWA
 
 ## iPhone Home Screen installation
 
 1. Upload the **contents** of this folder to an HTTPS static host such as GitHub Pages or Netlify. (Keep all files together.)
 2. Open the hosted URL in **Safari** on iPhone.
 3. Tap **Share** → **Add to Home Screen** → **Add**.
-4. Launch **Niagara Lite** from your Home Screen. After the first successful online load, the app shell is cached for offline use.
+4. Launch **NytLite** from your Home Screen. After the first successful online load, the app shell is cached for offline use.
 
 Opening index.html directly from the Files app will not enable service workers or reliable PWA installation. A public HTTPS URL or localhost is needed.
 
@@ -20,8 +20,8 @@ A browser-based mock of Unreal's Niagara editor. A **system** holds any number o
 - **Event Handlers:** let one emitter spawn particles from another emitter's death, collision or location events (fireworks, splashes, trails).
 - **Renderers:** Sprite (6 blend modes, alignment, facing, Sub UV flipbooks, sorting, pivot), Ribbon, Mesh (cube, sphere, shard, cone, cylinder, plane; lit or unlit), Light, and Decal. The Component and Volume renderers are export-only.
 - **Editing:** curve and gradient editors, enable/disable, reorder, solo, duplicate, and custom texture upload.
-- **Presets:** 18 system presets and 14 emitter templates based on Niagara's built-in templates.
-- **Export:** effect JSON (`niagara-lite/0.2`), a plain-text Niagara build sheet for rebuilding the effect by hand, flipbook PNGs (any grid, with an alpha-from-luminance option), and 5-second video recording. Saves to an on-device library and autosaves your work. Importing v1 JSON still works.
+- **Presets:** 19 system presets and 14 emitter templates based on Niagara's built-in templates.
+- **Export:** effect JSON (`nytlite/0.2`), a plain-text Niagara build sheet for rebuilding the effect by hand, flipbook PNGs (any grid, with an alpha-from-luminance option), and 5-second video recording. Saves to an on-device library and autosaves your work. Importing v1 JSON still works.
 
 Units match Unreal: centimetres, Z-up, seconds and degrees. Code lives in `js/`: `core.js` holds the module registry, `presets.js` the presets, `sim.js` the CPU simulation, `render.js` the WebGL2 renderer, `textures.js` the procedural textures, and `app.js` the UI.
 
