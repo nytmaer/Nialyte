@@ -6,7 +6,7 @@ NytLite is a browser-based particle effect editor laid out like Unreal Engine's 
 
 It runs in a desktop browser with WebGL2 (Chrome, Edge, Firefox or Safari). Nothing to install.
 
-**Support NytLite:** [ko-fi.com/nytmaer](https://ko-fi.com/nytmaer)
+[![Support on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/nytmaer)
 
 ---
 
@@ -92,4 +92,4 @@ Then open `http://localhost:8000`. The live site is published by GitHub Pages fr
 
 ## Support
 
-If NytLite is useful to you, you can support its development on Ko-fi: **[ko-fi.com/nytmaer](https://ko-fi.com/nytmaer)**
+If you find this project useful, you can support its development on Ko-fi: **[ko-fi.com/nytmaer](https://ko-fi.com/nytmaer)**
