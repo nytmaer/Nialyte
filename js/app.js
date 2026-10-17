@@ -311,6 +311,7 @@ function buildPanel() {
   panel.append(h('div', { class: 'about' },
     h('p', {}, h('b', {}, 'Units match Unreal: '), 'centimetres, Z-up, seconds, degrees. Colors are sRGB hex × intensity (HDR). Mesh shapes are 100 cm like the engine’s basic shapes, so Mesh Scale values transfer directly.'),
     h('p', {}, h('b', {}, 'What’s previewed: '), 'every spawn, location, velocity, force, color, size, rotation, Sub UV, collision (ground plane), kill, event, and the Sprite / Ribbon / Mesh / Light / Decal renderers. Component and Volume renderers are export-only. GPU Sim is an exported flag — the browser always simulates on the CPU.'),
+    h('p', {}, h('b', {}, 'Support NytLite: '), h('a', { href: 'https://ko-fi.com/nytmaer', target: '_blank', rel: 'noopener', style: 'color:#ff8a87' }, 'ko-fi.com/nytmaer')),
     h('p', {}, h('b', {}, 'UEFN: '), 'the JSON and build sheet are recipes, not .uasset files. Recreate the stack in UEFN’s Niagara editor (not every node is available there), or use the flipbook PNG as a SubUV texture.')));
   panel.scrollTop = st;
   refreshPresetSel();
