@@ -1,35 +1,89 @@
-# NytLite Effect Lab 002 | Installable PWA
+# NytLite — Effect Lab
 
-## iPhone Home Screen installation
+NytLite is a browser-based particle effect editor laid out like Unreal Engine's Niagara. You build effects from **systems**, **emitters** and **modules**, preview them live in 3D, and export what you made.
 
-1. Upload the **contents** of this folder to an HTTPS static host such as GitHub Pages or Netlify. (Keep all files together.)
-2. Open the hosted URL in **Safari** on iPhone.
-3. Tap **Share** → **Add to Home Screen** → **Add**.
-4. Launch **NytLite** from your Home Screen. After the first successful online load, the app shell is cached for offline use.
+**Open it:** https://nytmaer.github.io/NytLite/
 
-Opening index.html directly from the Files app will not enable service workers or reliable PWA installation. A public HTTPS URL or localhost is needed.
+It runs in a desktop browser with WebGL2 (Chrome, Edge, Firefox or Safari). Nothing to install.
 
-## Features
+---
 
-A browser-based mock of Unreal's Niagara editor. A **system** holds any number of **emitters**, and each emitter has the same stack Niagara uses: Emitter Properties, Emitter Update, Particle Spawn, Particle Update, Event Handlers and Render.
+## Quick start
 
-- **Spawning:** Spawn Rate, Spawn Burst Instantaneous (stack several), Spawn Per Unit. Every spawn module has a probability setting, and emitters support interpolated spawning.
-- **Emitter state:** Loop Behavior (Infinite / Once / Multiple), Loop Duration, Loop Delay, determinism with a seed, Local Space, Spawn Count Scale and Max Particles. Emitters can be set to Standard or Lightweight (stateless) mode, and Sim Target to CPU or GPU.
-- **Particle Spawn:** Initialize Particle, Shape Location (point, sphere, hemisphere, box, cylinder, cone, torus, ring/disc, line, grid), Add Velocity (Linear / In Cone / From Point), Inherit Velocity, Random Color from Gradient, Initial Mesh Orientation, Beam Emitter Setup.
-- **Particle Update:** Gravity, Acceleration, Linear, Drag, Wind, Curl Noise, Vortex, Point Attraction, Limit Velocity, Rotate Around Point, Color, Scale Color, Scale Sprite Size (and by speed), Scale Mesh Size (and by speed), Sprite Rotation Rate, Sub UV Animation, Dynamic Material Parameters, Camera Offset, Collision, Kill Particles In Volume, and Generate Location / Death / Collision events.
-- **Event Handlers:** let one emitter spawn particles from another emitter's death, collision or location events (fireworks, splashes, trails).
-- **Renderers:** Sprite (6 blend modes, alignment, facing, Sub UV flipbooks, sorting, pivot), Ribbon, Mesh (cube, sphere, shard, cone, cylinder, plane; lit or unlit), Light, and Decal. The Component and Volume renderers are export-only.
-- **Editing:** curve and gradient editors, enable/disable, reorder, solo, duplicate, and custom texture upload.
-- **Presets:** 19 system presets and 14 emitter templates based on Niagara's built-in templates.
-- **Export:** effect JSON (`nytlite/0.2`), a plain-text Niagara build sheet for rebuilding the effect by hand, flipbook PNGs (any grid, with an alpha-from-luminance option), and 5-second video recording. Saves to an on-device library and autosaves your work. Importing v1 JSON still works.
+1. Open the app. It loads the **Boost Burst** preset.
+2. Use the **preset menu** (top left, shows the current system name) to load one of the 19 ready-made effects, e.g. **Campfire** or **City Eraser (black hole)**.
+3. In the left panel, click an **emitter** to select it, then open any **module** to change its values. The preview updates as you edit.
+4. Press **⟲ Restart** to replay the effect from the beginning.
 
-Units match Unreal: centimetres, Z-up, seconds and degrees. Code lives in `js/`: `core.js` holds the module registry, `presets.js` the presets, `sim.js` the CPU simulation, `render.js` the WebGL2 renderer, `textures.js` the procedural textures, and `app.js` the UI.
+## The viewport
 
-## UEFN handoff
+| Action | Mouse | Touch |
+|---|---|---|
+| Orbit | drag | one-finger drag |
+| Pan | right-drag or Shift-drag | two-finger drag |
+| Zoom | scroll wheel | pinch |
+| Reset camera | double-click or 🎥 | 🎥 |
 
-Import the 1024×1024 4×4 PNG atlas into UEFN and configure a flipbook-capable sprite material (4 columns, 4 rows). The JSON and build sheet describe how to build the effect; they are not native Niagara assets. Rebuild the stack in UEFN's Niagara editor (some nodes aren't available there), or use the flipbook PNG with a SubUV material. Validate available UEFN Python scripting before automating Niagara construction.
+The bar under the preview has **⏸ / ▶** (pause / play), **⏭** (step one frame) and a **speed** menu (0.1× to 2×). The top-left readout shows the frame rate, particle count and elapsed time.
+
+## How an effect is organised
+
+- **System**: the whole effect. Open the **System** card for warmup time, fixed tick rate, preview speed, overall spawn scale, background, ground and **Component Motion**. Component Motion moves the effect along a path (orbit, back & forth, figure eight, bounce, rising spiral or a straight sweep) so you can see trails and movement-based spawning.
+- **Emitters**: the list under **Emitters**. Each row has an on/off checkbox, a live particle count and an **S** (solo) button. Under the list you can **+ Add emitter…** from 14 starting templates, plus **Duplicate**, **↑ ↓** (reorder) and **Delete**.
+- **Emitter Properties**: loop behaviour (Infinite / Once / Multiple), loop duration and delay, local or world space, a fixed random seed, max particles and spawn count scale. You can also set the emitter to **Lightweight** mode, which flags any module Unreal's lightweight emitters don't support.
+- **Module stacks**, in Niagara's order:
+  - **Emitter Update**: spawning (Spawn Rate, Spawn Burst Instantaneous, Spawn Per Unit)
+  - **Particle Spawn**: runs once per particle (Initialize Particle, Shape Location, Add Velocity, and more)
+  - **Particle Update**: runs every frame (forces, color, size, rotation, flipbook animation, collision, kill volumes, events)
+  - **Event Handlers**: spawn particles from another emitter's death, collision or location events
+  - **Render**: Sprite, Ribbon, Mesh, Light and Decal renderers
+
+Each module has an on/off checkbox, **↑ ↓** to reorder and **✕** to remove. Add new ones with the **+ Add module…** menu under each stack. Warnings appear above the stacks when something won't work, such as an emitter with nothing spawning or no renderer.
+
+**Editing values:**
+- **Numbers:** drag the slider or type a value.
+- **Ranges:** min and max per particle.
+- **Curves:** click to add a key, drag to move it, double-click to delete it. There's also a **Preset…** menu.
+- **Gradients:** **+ stop**, then set each stop's position, color and alpha.
+- **Textures:** pick a built-in one, or **⤒ Upload image…** to use your own.
+
+**Units match Unreal:** centimetres, Z-up, seconds and degrees. Colors are a hex color × intensity.
+
+## Saving
+
+- NytLite **autosaves** your current effect in the browser and reopens it next time.
+- **Save** stores the effect under a name in the **Library** menu on this device. Pick it from Library to load it, or from the Delete section to remove it.
+- Your library lives in this browser only. Use **Export → Effect JSON** to keep a copy or move it to another device.
+
+## Import & export
+
+From the **Export ▾** menu:
+
+- **Effect JSON:** the full effect as a `.nytlite.json` file. Load it back with **Import**.
+- **Niagara build sheet (.txt):** every emitter, module and value written out in Niagara's names and order, as a checklist for rebuilding the effect by hand in Unreal.
+- **Flipbook PNG…:** renders the effect from the current camera into a sprite sheet. You choose the grid (e.g. 4×4), frame size, duration, start time and background (black, transparent from brightness, or the scene).
+
+**Import** also opens JSON files exported from the original Effect Lab 001.
+
+## Running it yourself
+
+Serve the repo root from any static web server (it's plain HTML, CSS and JavaScript, with no build step), for example:
+
+```
+python -m http.server 8000
+```
+
+Then open `http://localhost:8000`. The live site is published by GitHub Pages from the `main` branch.
 
 ## Repo layout
 
-- Root: the installable PWA (`index.html`, `manifest.webmanifest`, `sw.js`, icons). Serve the root over HTTPS, e.g. GitHub Pages from `main` / root.
-- `standalone/`: the original Effect Lab 001 single-file version (v1, three presets). Open `standalone/index.html` directly; no server needed.
+| Path | What it is |
+|---|---|
+| `index.html`, `css/app.css` | Page and styles |
+| `js/core.js` | Module, emitter and system definitions (parameters and behaviour) |
+| `js/presets.js` | System presets and emitter templates |
+| `js/sim.js` | Particle simulation |
+| `js/render.js` | WebGL2 renderer |
+| `js/textures.js` | Built-in procedural textures |
+| `js/app.js` | Editor UI, camera, import/export |
+| `standalone/` | The original Effect Lab 001 (single file; open `standalone/index.html` directly) |
